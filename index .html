@@ -1,0 +1,1843 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>小児救急 薬剤確認アプリ</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=DM+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f4f6f9;
+    --surface: #ffffff;
+    --surface2: #f0f2f5;
+    --border: #dde1e7;
+    --accent: #e05c3a;
+    --accent2: #1a7fd4;
+    --accent3: #1e9e4a;
+    --accent4: #c78d00;
+    --text: #1a1f2e;
+    --text-muted: #5a6478;
+    --text-dim: #9aa0ae;
+    --red: #d63b30;
+    --orange: #e07820;
+    --yellow: #c78d00;
+    --green: #1e9e4a;
+    --blue: #1a7fd4;
+    --purple: #7c4dbb;
+    --pink: #c94f8a;
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans JP', sans-serif;
+    min-height: 100vh;
+    padding-bottom: 40px;
+  }
+
+  /* Header */
+  .header {
+    background: linear-gradient(135deg, #ffffff 0%, #eef1f6 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 20px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(10px);
+  }
+  .header-top {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .header-icon {
+    width: 40px; height: 40px;
+    background: linear-gradient(135deg, var(--accent), var(--orange));
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+  .header h1 {
+    font-size: 18px;
+    font-weight: 900;
+    color: var(--text);
+    line-height: 1.2;
+  }
+  .header h1 span {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-muted);
+    display: block;
+    margin-top: 2px;
+  }
+  .weight-bar {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .weight-label {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .weight-input-wrap {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 1;
+  }
+  input[type="number"] {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--accent2);
+    font-size: 22px;
+    font-family: 'DM Mono', monospace;
+    font-weight: 500;
+    width: 80px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    text-align: right;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  input[type="number"]:focus { border-color: var(--accent2); }
+  .unit { font-size: 14px; color: var(--text-muted); }
+  .age-btns {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+  }
+  .age-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-family: 'Noto Sans JP', sans-serif;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .age-btn:hover { background: var(--surface); border-color: var(--accent2); color: var(--accent2); }
+  .age-btn.active { background: var(--accent2); border-color: var(--accent2); color: var(--bg); font-weight: 700; }
+
+  /* Category filter */
+  .cat-scroll {
+    display: flex;
+    gap: 8px;
+    padding: 14px 16px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .cat-scroll::-webkit-scrollbar { display: none; }
+  .cat-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 700;
+    padding: 7px 14px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-family: 'Noto Sans JP', sans-serif;
+    white-space: nowrap;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .cat-btn:hover { border-color: #bbb; color: var(--text); }
+  .cat-btn.active {
+    color: #fff;
+    font-weight: 700;
+    border-color: transparent;
+  }
+
+  /* Drug grid */
+  .grid {
+    padding: 0 12px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  @media(min-width:600px) { .grid { grid-template-columns: repeat(3,1fr); } }
+  @media(min-width:900px) { .grid { grid-template-columns: repeat(4,1fr); padding: 0 20px; } }
+
+  /* Drug card */
+  .drug-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px;
+    cursor: pointer;
+    transition: all 0.18s;
+    position: relative;
+    overflow: hidden;
+  }
+  .drug-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    border-radius: var(--radius) var(--radius) 0 0;
+  }
+  .drug-card:hover {
+    border-color: #b0b8c8;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+  }
+  .drug-card.selected {
+    border-color: var(--accent2);
+    box-shadow: 0 0 0 2px rgba(26,127,212,0.2);
+  }
+  .drug-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 4px;
+    line-height: 1.3;
+  }
+  .drug-form {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+  .drug-dose-preview {
+    font-size: 12px;
+    font-family: 'DM Mono', monospace;
+    color: var(--accent2);
+    font-weight: 500;
+    margin-bottom: 6px;
+    min-height: 16px;
+  }
+  .drug-dose-preview.warn { color: var(--orange); }
+  .drug-dose-preview.ok { color: var(--green); }
+  .drug-cat-tag {
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 10px;
+    font-weight: 700;
+    display: inline-block;
+  }
+  .warn-badge {
+    position: absolute;
+    top: 8px; right: 8px;
+    font-size: 14px;
+  }
+  .no-result {
+    grid-column: 1/-1;
+    text-align: center;
+    color: var(--text-muted);
+    padding: 40px;
+    font-size: 14px;
+  }
+
+  /* Modal */
+  .overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 200;
+    backdrop-filter: blur(4px);
+    justify-content: center;
+    align-items: flex-end;
+    padding: 0;
+  }
+  .overlay.open { display: flex; }
+  @media(min-width:600px) {
+    .overlay { align-items: center; padding: 20px; }
+    .modal { border-radius: var(--radius) !important; max-width: 540px; width: 100%; }
+  }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius) var(--radius) 0 0;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: slideUp 0.25s ease;
+  }
+  @keyframes slideUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  .modal-handle {
+    width: 36px; height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin: 12px auto 0;
+  }
+  .modal-header {
+    padding: 16px 20px 12px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+  .modal-title { font-size: 18px; font-weight: 900; line-height: 1.3; }
+  .modal-subtitle { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
+  .modal-close {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 18px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    margin-left: 12px;
+  }
+  .modal-body { padding: 16px 20px 24px; }
+
+  /* Dose result */
+  .dose-result-box {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 14px;
+    margin-bottom: 14px;
+  }
+  .dose-result-box.highlight {
+    border-color: var(--green);
+    background: rgba(30,158,74,0.05);
+  }
+  .dose-result-box.warn {
+    border-color: var(--orange);
+    background: rgba(224,120,32,0.05);
+  }
+  .dose-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 5px 0;
+    border-bottom: 1px solid var(--border);
+    gap: 8px;
+  }
+  .dose-row:last-child { border-bottom: none; }
+  .dose-row-label { font-size: 12px; color: var(--text-muted); flex-shrink: 0; }
+  .dose-row-value {
+    font-size: 15px;
+    font-family: 'DM Mono', monospace;
+    font-weight: 500;
+    color: var(--text);
+    text-align: right;
+  }
+  .dose-row-value.big { font-size: 20px; color: var(--accent2); }
+  .dose-row-value.capped { color: var(--orange); }
+  .dose-row-value.ok { color: var(--green); }
+
+  /* Info rows */
+  .info-section { margin-top: 14px; }
+  .info-title { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+  .info-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+    gap: 8px;
+  }
+  .info-row:last-child { border-bottom: none; }
+  .info-row .lbl { color: var(--text-muted); flex-shrink: 0; }
+  .info-row .val { color: var(--text); font-weight: 500; text-align: right; }
+
+  /* Alert box */
+  .alert-box {
+    display: flex;
+    gap: 10px;
+    padding: 10px 14px;
+    border-radius: var(--radius-sm);
+    margin-top: 12px;
+    font-size: 12px;
+    line-height: 1.6;
+  }
+  .alert-box.danger { background: rgba(214,59,48,0.08); border: 1px solid rgba(214,59,48,0.3); color: var(--red); }
+  .alert-box.caution { background: rgba(224,120,32,0.08); border: 1px solid rgba(224,120,32,0.3); color: var(--orange); }
+  .alert-box.info { background: rgba(26,127,212,0.07); border: 1px solid rgba(26,127,212,0.25); color: var(--blue); }
+
+  /* Section label */
+  .section-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    padding: 12px 16px 6px;
+  }
+
+  /* Dosage age table in modal */
+  .age-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 8px; }
+  .age-table th { text-align: left; color: var(--text-muted); padding: 4px 8px; border-bottom: 1px solid var(--border); font-weight: 500; }
+  .age-table td { padding: 6px 8px; border-bottom: 1px solid rgba(180,190,210,0.5); }
+  .age-table tr:last-child td { border-bottom: none; }
+  .age-table tr.current-row td { background: rgba(26,127,212,0.08); color: var(--accent2); font-weight: 700; }
+
+  /* Confirm section */
+  .confirm-section {
+    margin-top: 16px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 14px;
+  }
+  .confirm-title { font-size: 13px; font-weight: 700; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+  .check-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+  }
+  .check-item:last-child { border-bottom: none; }
+  .check-box {
+    width: 20px; height: 20px;
+    border: 2px solid var(--border);
+    border-radius: 4px;
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px;
+    transition: all 0.15s;
+  }
+  .check-box.checked { background: var(--green); border-color: var(--green); }
+  .check-item:hover .check-box { border-color: var(--green); }
+  .check-label { font-size: 13px; line-height: 1.4; }
+
+  /* Bottom action */
+  .modal-footer {
+    padding: 12px 20px 20px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 10px;
+  }
+  .btn-confirm {
+    flex: 1;
+    background: linear-gradient(135deg, var(--green), #3da84a);
+    color: #fff;
+    border: none;
+    padding: 14px;
+    border-radius: var(--radius-sm);
+    font-size: 15px;
+    font-weight: 700;
+    font-family: 'Noto Sans JP', sans-serif;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  .btn-confirm:hover { opacity: 0.9; }
+  .btn-confirm:disabled { background: var(--surface2); color: var(--text-muted); cursor: not-allowed; }
+  .btn-secondary {
+    background: var(--surface2);
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+    padding: 14px 18px;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-weight: 700;
+    font-family: 'Noto Sans JP', sans-serif;
+    cursor: pointer;
+  }
+  .btn-secondary:hover { color: var(--text); }
+
+  /* Confirmed stamp */
+  .confirmed-stamp {
+    display: none;
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%,-50%) rotate(-15deg);
+    font-size: 13px;
+    font-weight: 900;
+    color: var(--green);
+    border: 2px solid var(--green);
+    padding: 4px 10px;
+    border-radius: 4px;
+    opacity: 0.8;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+  .drug-card.confirmed .confirmed-stamp { display: block; }
+  .drug-card.confirmed { opacity: 0.7; }
+  .drug-card.confirmed:hover { opacity: 0.9; }
+
+  /* Topbar count */
+  .confirm-count {
+    background: var(--green);
+    color: var(--bg);
+    font-size: 11px;
+    font-weight: 900;
+    border-radius: 10px;
+    padding: 2px 8px;
+    margin-left: 8px;
+  }
+
+  /* Search */
+  .search-wrap {
+    padding: 0 12px 10px;
+  }
+  .search-input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 14px;
+    padding: 10px 14px;
+    border-radius: var(--radius-sm);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .search-input:focus { border-color: var(--accent2); }
+  .search-input::placeholder { color: var(--text-dim); }
+
+  /* ===== ADMIN ===== */
+  .adm-overlay {
+    display:none; position:fixed; inset:0; background:rgba(0,0,0,.5);
+    z-index:500; align-items:center; justify-content:center; padding:16px;
+  }
+  .adm-overlay.open { display:flex; }
+  .adm-box {
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:var(--radius); width:100%; max-width:480px;
+    max-height:92vh; overflow-y:auto; animation:slideUp .22s ease;
+  }
+  .adm-head {
+    padding:16px 20px 12px; border-bottom:1px solid var(--border);
+    display:flex; align-items:center; justify-content:space-between;
+  }
+  .adm-head h2 { font-size:16px; font-weight:900; }
+  .adm-close {
+    background:var(--surface2); border:1px solid var(--border); color:var(--text-muted);
+    width:30px; height:30px; border-radius:50%; cursor:pointer; font-size:16px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .adm-body { padding:20px; }
+  .adm-field { margin-bottom:14px; }
+  .adm-label { font-size:12px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:5px; }
+  .adm-input, .adm-select, .adm-textarea {
+    width:100%; background:var(--surface2); border:1px solid var(--border);
+    color:var(--text); font-family:'Noto Sans JP',sans-serif; font-size:13px;
+    padding:9px 12px; border-radius:var(--radius-sm); outline:none;
+    transition:border-color .2s;
+  }
+  .adm-input:focus, .adm-select:focus, .adm-textarea:focus { border-color:var(--accent2); }
+  .adm-textarea { resize:vertical; min-height:60px; line-height:1.6; }
+  .adm-row { display:flex; gap:10px; }
+  .adm-row .adm-field { flex:1; }
+  .adm-foot {
+    padding:12px 20px 16px; border-top:1px solid var(--border);
+    display:flex; gap:10px; justify-content:flex-end;
+  }
+  .btn-adm-save {
+    background:var(--accent2); color:#fff; border:none; padding:10px 22px;
+    border-radius:var(--radius-sm); font-size:13px; font-weight:700;
+    font-family:'Noto Sans JP',sans-serif; cursor:pointer;
+  }
+  .btn-adm-save:hover { opacity:.88; }
+  .btn-adm-cancel {
+    background:var(--surface2); color:var(--text-muted); border:1px solid var(--border);
+    padding:10px 18px; border-radius:var(--radius-sm); font-size:13px; font-weight:700;
+    font-family:'Noto Sans JP',sans-serif; cursor:pointer;
+  }
+  .adm-drug-list { display:flex; flex-direction:column; gap:6px; }
+  .adm-drug-row {
+    display:flex; align-items:center; gap:8px; padding:10px 12px;
+    background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-sm);
+  }
+  .adm-drug-row:hover { border-color:#bbb; }
+  .adm-drug-name { flex:1; font-size:13px; font-weight:700; }
+  .adm-drug-cat { font-size:11px; color:var(--text-muted); flex-shrink:0; }
+  .btn-adm-edit {
+    background:var(--surface2); border:1px solid var(--border); color:var(--text-muted);
+    font-size:11px; padding:4px 10px; border-radius:6px; cursor:pointer; white-space:nowrap;
+    font-family:'Noto Sans JP',sans-serif;
+  }
+  .btn-adm-edit:hover { border-color:var(--accent2); color:var(--accent2); }
+  .btn-adm-del {
+    background:none; border:none; color:var(--text-dim); cursor:pointer; font-size:16px;
+    width:24px; height:24px; display:flex; align-items:center; justify-content:center;
+    border-radius:4px; flex-shrink:0;
+  }
+  .btn-adm-del:hover { background:rgba(214,59,48,.1); color:var(--red); }
+  .btn-adm-new {
+    width:100%; background:var(--surface2); border:1px dashed var(--border); color:var(--accent2);
+    font-size:13px; font-weight:700; padding:11px; border-radius:var(--radius-sm);
+    cursor:pointer; font-family:'Noto Sans JP',sans-serif; margin-top:10px;
+    transition:all .15s;
+  }
+  .btn-adm-new:hover { background:rgba(26,127,212,.06); border-color:var(--accent2); }
+  .adm-tab-bar {
+    display:flex; gap:0; border-bottom:1px solid var(--border); padding:0 20px;
+  }
+  .adm-tab {
+    font-size:13px; font-weight:700; padding:10px 16px; cursor:pointer; border:none;
+    background:none; color:var(--text-muted); font-family:'Noto Sans JP',sans-serif;
+    border-bottom:2px solid transparent; margin-bottom:-1px; transition:all .15s;
+  }
+  .adm-tab.active { color:var(--accent2); border-bottom-color:var(--accent2); }
+  .adm-panel { display:none; padding:16px 20px; }
+  .adm-panel.active { display:block; }
+  .adm-pw-wrap { max-width:300px; margin:0 auto; text-align:center; }
+  .adm-pw-title { font-size:16px; font-weight:900; margin-bottom:6px; }
+  .adm-pw-sub { font-size:12px; color:var(--text-muted); margin-bottom:20px; }
+  .adm-pw-err { font-size:12px; color:var(--red); margin-top:8px; min-height:18px; }
+  .adm-section-title {
+    font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase;
+    letter-spacing:.5px; margin-bottom:10px;
+  }
+  .adm-hint { font-size:11px; color:var(--text-dim); margin-top:4px; line-height:1.5; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <div class="header-icon">🏥</div>
+    <div style="flex:1">
+      <h1>小児救急 薬剤確認<span>院内常備薬 ／ 医師・薬剤師共通確認</span></h1>
+    </div>
+    <div style="font-size:12px;color:var(--text-muted);text-align:right;line-height:1.6">
+      確認済み<br><span id="confirmCount" style="font-size:20px;font-weight:900;color:var(--green)">0</span>
+    </div>
+    <button onclick="openAdminGate()" style="
+      background:var(--surface2);border:1px solid var(--border);color:var(--text-muted);
+      font-size:11px;padding:6px 12px;border-radius:var(--radius-sm);cursor:pointer;
+      font-family:'Noto Sans JP',sans-serif;white-space:nowrap;transition:all .15s;
+    " onmouseover="this.style.borderColor='#aaa'" onmouseout="this.style.borderColor='var(--border)'">管理</button>
+  </div>
+  <div class="weight-bar">
+    <div style="display:flex;flex-direction:column;gap:8px;width:100%">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span class="weight-label" style="width:28px">体重</span>
+        <div class="weight-input-wrap">
+          <input type="number" id="weightInput" min="0.5" max="100" placeholder="--" step="0.5">
+          <span class="unit">kg</span>
+        </div>
+        <span class="weight-label" style="width:28px">年齢</span>
+        <div style="display:flex;align-items:center;gap:4px">
+          <input type="number" id="ageYearInput" min="0" max="15" placeholder="--" step="1"
+            style="width:52px;font-size:18px;font-family:'DM Mono',monospace;font-weight:500;
+                   background:var(--surface);border:1px solid var(--border);color:var(--accent);
+                   padding:4px 6px;border-radius:6px;text-align:right;outline:none;">
+          <span class="unit">歳</span>
+          <input type="number" id="ageMonthInput" min="0" max="11" placeholder="--" step="1"
+            style="width:46px;font-size:18px;font-family:'DM Mono',monospace;font-weight:500;
+                   background:var(--surface);border:1px solid var(--border);color:var(--accent);
+                   padding:4px 6px;border-radius:6px;text-align:right;outline:none;">
+          <span class="unit">ヶ月</span>
+        </div>
+        <div style="font-size:11px;color:var(--text-muted);text-align:right;line-height:1.6;margin-left:auto;flex-shrink:0">
+          <span id="bsaDisplay">-</span><br>
+          <span id="ageGuessDisplay" style="color:var(--text-dim)">-</span>
+        </div>
+      </div>
+      <div id="ageWarningBar" style="display:none;font-size:11px;padding:5px 10px;
+        background:rgba(224,120,32,.1);border:1px solid rgba(224,120,32,.3);
+        color:var(--orange);border-radius:6px;line-height:1.5">
+      </div>
+    </div>
+  </div>
+  <div class="age-btns">
+    <span style="font-size:11px;color:var(--text-dim);align-self:center;flex-shrink:0">参考値：</span>
+    <button class="age-btn" data-w="3"   data-ym="0"  data-yy="0">新生児 3kg</button>
+    <button class="age-btn" data-w="5"   data-ym="2"  data-yy="0">2ヶ月 5kg</button>
+    <button class="age-btn" data-w="7"   data-ym="6"  data-yy="0">6ヶ月 7kg</button>
+    <button class="age-btn" data-w="10"  data-ym="0"  data-yy="1">1歳 10kg</button>
+    <button class="age-btn" data-w="13"  data-ym="0"  data-yy="2">2歳 13kg</button>
+    <button class="age-btn" data-w="16"  data-ym="0"  data-yy="3">3歳 16kg</button>
+    <button class="age-btn" data-w="20"  data-ym="0"  data-yy="5">5歳 20kg</button>
+    <button class="age-btn" data-w="25"  data-ym="0"  data-yy="7">7歳 25kg</button>
+    <button class="age-btn" data-w="35"  data-ym="0"  data-yy="10">10歳 35kg</button>
+    <button class="age-btn" data-w="50"  data-ym="0"  data-yy="13">13歳 50kg</button>
+  </div>
+</div>
+
+<div class="cat-scroll" id="catScroll"></div>
+
+<div class="search-wrap">
+  <input class="search-input" type="text" id="searchInput" placeholder="薬剤名・症状で検索...">
+</div>
+
+<div class="grid" id="drugGrid"></div>
+
+<!-- Modal -->
+<div class="overlay" id="overlay">
+  <div class="modal" id="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="modalTitle"></div>
+        <div class="modal-subtitle" id="modalSubtitle"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal()">戻る</button>
+      <button class="btn-confirm" id="confirmBtn" onclick="confirmDrug()">✓ 医師・薬剤師 確認済み</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== ADMIN OVERLAY ===== -->
+<div class="adm-overlay" id="admOverlay">
+  <div class="adm-box" id="admBox">
+    <div class="adm-head">
+      <h2 id="admTitle">管理画面</h2>
+      <button class="adm-close" onclick="closeAdmin()">×</button>
+    </div>
+
+    <!-- パスワード認証パネル -->
+    <div id="admAuth" style="padding:40px 20px">
+      <div class="adm-pw-wrap">
+        <div class="adm-pw-title">管理者ログイン</div>
+        <div class="adm-pw-sub">パスワードを入力してください</div>
+        <input class="adm-input" type="password" id="admPwInput" placeholder="パスワード"
+          onkeydown="if(event.key==='Enter')checkAdminPw()">
+        <div style="margin-top:10px">
+          <button class="btn-adm-save" style="width:100%" onclick="checkAdminPw()">ログイン</button>
+        </div>
+        <div class="adm-pw-err" id="admPwErr"></div>
+      </div>
+    </div>
+
+    <!-- 管理パネル（認証後） -->
+    <div id="admMain" style="display:none">
+      <div class="adm-tab-bar">
+        <button class="adm-tab active" onclick="switchAdmTab('list',this)">薬剤一覧</button>
+        <button class="adm-tab" onclick="switchAdmTab('pw',this)">パスワード変更</button>
+      </div>
+
+      <!-- 薬剤一覧タブ -->
+      <div class="adm-panel active" id="admPanelList">
+        <div class="adm-drug-list" id="admDrugList"></div>
+        <button class="btn-adm-new" onclick="openDrugForm(null)">＋ 新しい薬剤を追加</button>
+      </div>
+
+      <!-- パスワード変更タブ -->
+      <div class="adm-panel" id="admPanelPw">
+        <div class="adm-section-title">パスワード変更</div>
+        <div class="adm-field">
+          <label class="adm-label">現在のパスワード</label>
+          <input class="adm-input" type="password" id="admPwOld" placeholder="現在のパスワード">
+        </div>
+        <div class="adm-field">
+          <label class="adm-label">新しいパスワード</label>
+          <input class="adm-input" type="password" id="admPwNew" placeholder="新しいパスワード（6文字以上）">
+        </div>
+        <div class="adm-field">
+          <label class="adm-label">新しいパスワード（確認）</label>
+          <input class="adm-input" type="password" id="admPwNew2" placeholder="もう一度入力">
+        </div>
+        <div class="adm-pw-err" id="admPwChangeErr"></div>
+        <button class="btn-adm-save" onclick="changePassword()">変更する</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 薬剤編集フォーム -->
+<div class="adm-overlay" id="admFormOverlay">
+  <div class="adm-box">
+    <div class="adm-head">
+      <h2 id="admFormTitle">薬剤を追加</h2>
+      <button class="adm-close" onclick="closeDrugForm()">×</button>
+    </div>
+    <div class="adm-body">
+      <input type="hidden" id="fDrugId">
+      <div class="adm-row">
+        <div class="adm-field">
+          <label class="adm-label">薬剤名 *</label>
+          <input class="adm-input" id="fName" placeholder="例：カルボシステインシロップ">
+        </div>
+        <div class="adm-field">
+          <label class="adm-label">カテゴリ *</label>
+          <input class="adm-input" id="fCat" placeholder="例：咳・去痰" list="fCatList">
+          <datalist id="fCatList"></datalist>
+        </div>
+      </div>
+      <div class="adm-field">
+        <label class="adm-label">剤形・規格</label>
+        <input class="adm-input" id="fForm" placeholder="例：5%（50mg/mL）">
+      </div>
+      <div class="adm-field">
+        <label class="adm-label">カテゴリカラー</label>
+        <div style="display:flex;align-items:center;gap:8px">
+          <input type="color" id="fColor" value="#1a7fd4" style="width:40px;height:32px;border:1px solid var(--border);border-radius:6px;cursor:pointer;padding:2px;">
+          <span style="font-size:12px;color:var(--text-muted)">カードのアクセントカラー</span>
+        </div>
+      </div>
+      <div class="adm-field">
+        <label class="adm-label">検索キーワード（スペース区切り）</label>
+        <input class="adm-input" id="fKeyword" placeholder="例：咳 痰 去痰">
+      </div>
+      <div class="adm-field">
+        <label class="adm-label">年齢・体重別用量（1行1区分）</label>
+        <div class="adm-hint">形式：対象 | 用量 | 最大量　例：全年齢 | 10mg/kg/日 分3 | 1500mg/日</div>
+        <textarea class="adm-textarea" id="fAgeDose" rows="4"
+          placeholder="全年齢 | 10mg/kg/日 分3 | 1500mg/日&#10;20kg以上 | 500mg/日 | 1500mg/日"></textarea>
+      </div>
+      <div class="adm-field">
+        <label class="adm-label">警告（1行1項目、空白でOK）</label>
+        <textarea class="adm-textarea" id="fWarnings" rows="2"
+          placeholder="例：4ヶ月未満は禁忌&#10;過量投与で肝毒性"></textarea>
+      </div>
+      <div class="adm-field">
+        <label class="adm-label">確認チェックリスト（1行1項目）</label>
+        <textarea class="adm-textarea" id="fChecks" rows="3"
+          placeholder="例：用量計算を確認した&#10;最大量を超えていない"></textarea>
+      </div>
+      <div class="adm-field">
+        <label class="adm-label">備考・用量メモ（表示用テキスト）</label>
+        <textarea class="adm-textarea" id="fNote" rows="2"
+          placeholder="例：体重×10mg/日 最大1500mg"></textarea>
+        <div class="adm-hint">カードのプレビューに表示されます。体重計算が不要な薬剤に使用してください。</div>
+      </div>
+    </div>
+    <div class="adm-foot">
+      <button class="btn-adm-cancel" id="admDelBtn" onclick="deleteDrug()" style="color:var(--red);border-color:rgba(214,59,48,.3);display:none">削除</button>
+      <button class="btn-adm-cancel" onclick="closeDrugForm()">キャンセル</button>
+      <button class="btn-adm-save" onclick="saveDrug()">保存</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== DRUG DATABASE =====
+const DRUGS = [
+  // ---- 咳・去痰 ----
+  {
+    id: 'd001', cat: '咳・去痰', catColor: '#1a7fd4',
+    name: 'カルボシステインシロップ', form: '5%（50mg/mL）', keyword: '咳 痰 去痰',
+    calc: (w, am) => {
+      if (!w) throw new Error('体重必要');
+      const dose_mg = Math.min(w * 30, 1500);
+      const ml = dose_mg / 50;
+      return { lines: [
+        { l: '1日量（成分）', v: `${dose_mg.toFixed(0)} mg`, cls: dose_mg >= 1500 ? 'capped' : 'ok' },
+        { l: '1日量（液）', v: `${ml.toFixed(1)} mL`, cls: 'big' },
+        { l: '1回量（液）分3', v: `${(ml/3).toFixed(1)} mL` },
+        { l: '最大量', v: '1500mg/日', cls: 'capped' },
+      ], note: dose_mg >= 1500 ? '最大量に達しています' : (am !== null && am < 4 ? '⚠ 4ヶ月未満は慎重投与' : null) };
+    },
+    ageDose: [{ range: '全年齢（4ヵ月未満は慎重）', dose: '30mg/kg/日 分2~3', max: '1500mg/日',
+      matchAge: (am) => true }],
+    warnings: [], checks: ['用量計算を確認した', '最大量を超えていない', '剤形（シロップ）を確認した']
+  },
+  {
+    id: 'd002', cat: '咳・去痰', catColor: '#1a7fd4',
+    name: 'カルボシステイン細粒', form: '50%（500mg/g）', keyword: '咳 痰 去痰',
+    calc: (w, am) => {
+      if (!w) throw new Error('体重必要');
+      const dose_mg = Math.min(w * 30, 1500);
+      const g = dose_mg / 500;
+      return { lines: [
+        { l: '1日量（成分）', v: `${dose_mg.toFixed(0)} mg`, cls: dose_mg >= 1500 ? 'capped' : 'ok' },
+        { l: '1日量（細粒）', v: `${g.toFixed(2)} g`, cls: 'big' },
+        { l: '1回量（細粒）分3', v: `${(g/3).toFixed(2)} g` },
+        { l: '最大量', v: '1500mg/日', cls: 'capped' },
+      ], note: dose_mg >= 1500 ? '最大量に達しています' : null };
+    },
+    ageDose: [{ range: '全年齢', dose: '30mg/kg/日 分2~3', max: '1500mg/日', matchAge: () => true }],
+    warnings: ['シロップ不可時に推奨'], checks: ['用量計算を確認した', '最大量を超えていない', '細粒の規格（50%）を確認した']
+  },
+  // ---- 鎮咳 ----
+  {
+    id: 'd003', cat: '鎮咳', catColor: '#7c4dbb',
+    name: 'アストミンS', form: '2.5mg/mL（シロップ）', keyword: '咳 鎮咳',
+    calc: (w, am) => {
+      // 年齢ベース優先、なければ体重から推定
+      const months = am !== null ? am : (w ? w / 1 * 12 : null);
+      let range, ml_min, ml_max;
+      if (months === null) throw new Error('年齢または体重が必要');
+      if (months < 24)       { range = '2歳未満';   ml_min = 3;  ml_max = 4.5; }
+      else if (months < 48)  { range = '2〜3歳';    ml_min = 5;  ml_max = 8;   }
+      else if (months < 84)  { range = '4〜6歳';    ml_min = 8;  ml_max = 11;  }
+      else                   { range = '7〜14歳';   ml_min = 12; ml_max = 14;  }
+      return { lines: [
+        { l: '年齢区分', v: range },
+        { l: '1日量（液）', v: `${ml_min}〜${ml_max} mL`, cls: 'big' },
+        { l: '1回量（液）分3', v: `${(ml_min/3).toFixed(1)}〜${(ml_max/3).toFixed(1)} mL` },
+        { l: '最大量（14歳未満）', v: '35mg = 14mL/日', cls: 'capped' },
+      ], note: '年齢区分を優先して選択' };
+    },
+    ageDose: [
+      { range: '2歳未満',  dose: '3〜4.5 mL/日 分3', max: '35mg/日', matchAge: (am) => am < 24 },
+      { range: '2〜3歳',   dose: '5〜8 mL/日 分3',   max: '35mg/日', matchAge: (am) => am >= 24 && am < 48 },
+      { range: '4〜6歳',   dose: '8〜11 mL/日 分3',  max: '35mg/日', matchAge: (am) => am >= 48 && am < 84 },
+      { range: '7〜14歳',  dose: '12〜14 mL/日 分3', max: '35mg/日', matchAge: (am) => am >= 84 },
+    ],
+    warnings: [], checks: ['年齢区分を確認した', '最大量（35mg=14mL）を超えていない', '分3で処方する']
+  },
+  // ---- 気管支拡張 ----
+  {
+    id: 'd010', cat: '気管支拡張', catColor: '#1e9e4a',
+    name: 'メプチンS', form: '5μg/mL（シロップ）', keyword: '気管支 喘息 メプチン',
+    calc: (w, am) => {
+      if (!w) throw new Error('体重必要');
+      const isUnder6y = am !== null ? am < 72 : w < 20;
+      if (isUnder6y) {
+        const dose_ug = Math.min(w * 1.25, 50);
+        const ml = dose_ug / 5;
+        return { lines: [
+          { l: '対象', v: '6歳未満' },
+          { l: '1回量（成分）', v: `${dose_ug.toFixed(1)} μg`, cls: dose_ug >= 50 ? 'capped' : 'ok' },
+          { l: '1回量（液）', v: `${ml.toFixed(2)} mL`, cls: 'big' },
+          { l: '投与回数', v: '1日2〜3回' },
+          { l: '最大量', v: '100μg/日', cls: 'capped' },
+        ], note: null };
+      } else {
+        const dose_ug = Math.min(w * 25, 100);
+        const ml = dose_ug / 5;
+        return { lines: [
+          { l: '対象', v: '6歳以上' },
+          { l: '1回量（成分）', v: `${dose_ug.toFixed(0)} μg`, cls: dose_ug >= 100 ? 'capped' : 'ok' },
+          { l: '1回量（液）', v: `${ml.toFixed(1)} mL`, cls: 'big' },
+          { l: '投与回数', v: '1日1〜2回' },
+          { l: '最大量', v: '100μg/日', cls: 'capped' },
+        ], note: null };
+      }
+    },
+    ageDose: [
+      { range: '6歳未満', dose: '1.25μg/kg/回 1日2〜3回', max: '100μg/日', matchAge: (am) => am < 72 },
+      { range: '6歳以上', dose: '25μg/kg/回 1日1〜2回',   max: '100μg/日', matchAge: (am) => am >= 72 },
+    ],
+    warnings: ['最大量100μg/日を厳守'],
+    checks: ['6歳区分を確認した', '最大量100μg/日を超えていない', '投与回数を確認した']
+  },
+  {
+    id: 'd011', cat: '気管支拡張', catColor: '#1e9e4a',
+    name: 'ツロブテロールテープ', form: '0.5mg / 1mg / 2mg', keyword: '気管支 テープ 喘息',
+    calc: (w, am) => {
+      let mg, range;
+      if (am !== null) {
+        if (am < 6)        { mg = null; range = '6ヶ月未満は禁忌'; }
+        else if (am < 36)  { mg = 0.5; range = '6ヶ月〜3歳未満'; }
+        else if (am < 108) { mg = 1;   range = '3歳〜9歳未満'; }
+        else               { mg = 2;   range = '9歳以上'; }
+      } else {
+        if (!w) throw new Error('年齢または体重が必要');
+        if (w < 10)  { mg = 0.5; range = '〜3歳未満（体重目安）'; }
+        else if (w < 30) { mg = 1; range = '3〜9歳（体重目安）'; }
+        else         { mg = 2;   range = '9歳以上（体重目安）'; }
+      }
+      if (!mg) return { lines: [{ l: '注意', v: '6ヶ月未満は禁忌', cls: 'capped' }], note: null };
+      return { lines: [
+        { l: '年齢区分', v: range },
+        { l: '規格', v: `${mg}mg テープ`, cls: 'big' },
+        { l: '投与', v: '1日1枚 就寝前貼付' },
+      ], note: '胸部・背部・上腕部のいずれかに貼付' };
+    },
+    ageDose: [
+      { range: '6ヶ月未満',  dose: '禁忌',           max: '-',  matchAge: (am) => am < 6 },
+      { range: '6ヶ月〜3歳未満', dose: '0.5mgテープ 1日1枚', max: '-', matchAge: (am) => am >= 6 && am < 36 },
+      { range: '3歳〜9歳未満',   dose: '1mgテープ 1日1枚',   max: '-', matchAge: (am) => am >= 36 && am < 108 },
+      { range: '9歳以上',        dose: '2mgテープ 1日1枚',   max: '-', matchAge: (am) => am >= 108 },
+    ],
+    warnings: ['6ヶ月未満は禁忌'],
+    checks: ['年齢区分を確認した', 'テープ規格（0.5/1/2mg）を確認した', '貼付部位を指導した']
+  },
+  // ---- アレルギー ----
+  {
+    id: 'd020', cat: 'アレルギー', catColor: '#c94f8a',
+    name: 'ザイザルS', form: '0.5mg/mL（シロップ）', keyword: '鼻水 蕁麻疹 アレルギー',
+    calc: (w, am) => {
+      if (am === null && !w) throw new Error('年齢または体重が必要');
+      let range, ml, times;
+      if (am !== null) {
+        if (am < 6)   { return { lines: [{ l: '注意', v: '6ヶ月未満は禁忌', cls: 'capped' }], note: null }; }
+        if (am < 12)  { range = '6ヶ月〜1歳未満'; ml = 2.5; times = '1日1回'; }
+        else if (am < 84) { range = '1歳〜7歳未満'; ml = 2.5; times = '1日2回'; }
+        else          { range = '7歳〜15歳未満'; ml = 5; times = '1日2回'; }
+      } else {
+        if (w < 10)  { range = '6ヶ月〜1歳未満（体重目安）'; ml = 2.5; times = '1日1回'; }
+        else if (w < 25) { range = '1歳〜7歳未満（体重目安）'; ml = 2.5; times = '1日2回'; }
+        else         { range = '7歳〜15歳未満（体重目安）'; ml = 5; times = '1日2回'; }
+      }
+      const daily_mg = times === '1日1回' ? ml * 0.5 : ml * 0.5 * 2;
+      return { lines: [
+        { l: '年齢区分', v: range },
+        { l: '1回量（液）', v: `${ml} mL`, cls: 'big' },
+        { l: '投与', v: times },
+        { l: '1日量（成分）', v: `${daily_mg} mg` },
+      ], note: '夕食後または就寝前' };
+    },
+    ageDose: [
+      { range: '6ヶ月未満',    dose: '禁忌',              max: '-', matchAge: (am) => am < 6 },
+      { range: '6ヶ月〜1歳未満', dose: '2.5mL 1日1回',  max: '-', matchAge: (am) => am >= 6 && am < 12 },
+      { range: '1歳〜7歳未満',   dose: '2.5mL 1日2回',  max: '-', matchAge: (am) => am >= 12 && am < 84 },
+      { range: '7歳〜15歳未満',  dose: '5mL 1日2回',    max: '-', matchAge: (am) => am >= 84 },
+    ],
+    warnings: ['6ヶ月未満は禁忌'],
+    checks: ['年齢区分を確認した', '用量を確認した', '服用タイミングを指導した']
+  },
+  {
+    id: 'd021', cat: 'アレルギー', catColor: '#c94f8a',
+    name: 'オノンDS', form: '細粒', keyword: '鼻水 アレルギー プランルカスト',
+    calc: (w, am) => {
+      if (!w) throw new Error('体重必要');
+      const dose_mg = Math.min(w * 5, 450);
+      return { lines: [
+        { l: '1日量（成分）', v: `${dose_mg.toFixed(0)} mg`, cls: dose_mg >= 450 ? 'capped' : 'ok' },
+        { l: '投与', v: '分2（朝夕食後）' },
+        { l: '最大量', v: '450mg/日', cls: 'capped' },
+      ], note: dose_mg >= 450 ? '最大量に達しています' : null };
+    },
+    ageDose: [{ range: '全年齢', dose: '3.5〜5mg/kg/日 分2', max: '450mg/日', matchAge: () => true }],
+    warnings: [], checks: ['最大量450mg/日を超えていない', '分2（朝夕食後）を確認した']
+  },
+  // ---- 発熱・鎮痛 ----
+  {
+    id: 'd030', cat: '発熱・鎮痛', catColor: '#e07820',
+    name: 'カロナールS / アセトアミノフェンDS', form: 'シロップ 0.5mL/kg または DS 10mg/kg', keyword: '発熱 熱 鎮痛 解熱 アセトアミノフェン',
+    calc: (w, am) => {
+      if (!w) throw new Error('体重必要');
+      if (am !== null && am < 4) {
+        return { lines: [{ l: '注意', v: '4ヶ月未満は原則禁忌', cls: 'capped' }], note: '4ヶ月未満への投与は避ける' };
+      }
+      const dose_mg = Math.min(w * 10, 500);
+      const ml = w * 0.5;
+      return { lines: [
+        { l: '1回量（成分）', v: `${dose_mg.toFixed(0)} mg`, cls: 'big' },
+        { l: 'シロップ 1回量', v: `${ml.toFixed(1)} mL` },
+        { l: '投与間隔', v: '4〜6時間以上あける' },
+        { l: '1日最大回数', v: '4回まで' },
+      ], note: am !== null && am < 5 ? '4ヶ月〜5ヶ月は慎重に' : null };
+    },
+    ageDose: [
+      { range: '4ヶ月未満', dose: '原則禁忌', max: '-', matchAge: (am) => am < 4 },
+      { range: '4ヶ月以上', dose: '10mg/kg/回（最大500mg）', max: '4回/日', matchAge: (am) => am >= 4 },
+    ],
+    warnings: ['4ヶ月未満は原則禁忌', '過量投与で肝毒性'],
+    checks: ['4ヶ月以上であることを確認した', '前回投与から4時間以上経過している', '1日4回以内であることを確認した', '用量（10mg/kg）を確認した']
+  },
+  {
+    id: 'd031', cat: '発熱・鎮痛', catColor: '#e07820',
+    name: 'アンヒバ坐薬', form: '50mg / 100mg / 200mg', keyword: '発熱 熱 坐薬 アセトアミノフェン 解熱',
+    calc: (w, am) => {
+      if (!w) throw new Error('体重必要');
+      if (am !== null && am < 4) {
+        return { lines: [{ l: '注意', v: '4ヶ月未満は原則禁忌', cls: 'capped' }], note: null };
+      }
+      let mg, note;
+      if (w < 7)       { mg = 50;  note = '4〜7kg未満'; }
+      else if (w < 10) { mg = 50;  note = '7〜10kg：50mg（低め）'; }
+      else if (w < 13) { mg = 100; note = '10〜13kg未満'; }
+      else if (w < 18) { mg = 100; note = '13〜18kg'; }
+      else             { mg = 200; note = '18kg以上'; }
+      const per_kg = (mg / w).toFixed(1);
+      return { lines: [
+        { l: '推奨規格', v: `${mg}mg 坐薬`, cls: 'big' },
+        { l: '対象', v: note },
+        { l: '実際の用量', v: `${per_kg} mg/kg/回` },
+        { l: '投与間隔', v: '4〜6時間以上' },
+      ], note: '6〜10mg/kg/回が目安' };
+    },
+    ageDose: [
+      { range: '4ヶ月未満',   dose: '原則禁忌',       max: '-',  matchAge: (am) => am < 4 },
+      { range: '4〜7kg未満',  dose: '50mg × 1本',     max: '-',  matchAge: (am, w) => w && w >= 4 && w < 7 },
+      { range: '10〜13kg未満', dose: '100mg × 1本',   max: '-',  matchAge: (am, w) => w && w >= 10 && w < 13 },
+      { range: '18kg以上',    dose: '200mg × 1本',    max: '-',  matchAge: (am, w) => w && w >= 18 },
+    ],
+    warnings: ['4ヶ月未満は原則禁忌'],
+    checks: ['規格（50/100/200mg）を確認した', '前回投与から4時間以上経過している', '4ヶ月以上であることを確認した']
+  },
+  // ---- けいれん ----
+  {
+    id: 'd040', cat: 'けいれん', catColor: '#d63b30',
+    name: 'ダイアップ坐剤', form: '4mg / 6mg / 10mg', keyword: 'けいれん 熱性けいれん ジアゼパム',
+    calc: (w, am) => {
+      if (!w) throw new Error('体重必要');
+      const target = (w * 0.4).toFixed(1);
+      const max_day = (w * 1.0).toFixed(0);
+      let form;
+      if (w < 10)      form = '4mg × 1/2本（2mg）';
+      else if (w < 13) form = '4mg × 1本（4mg）';
+      else if (w < 18) form = '6mg × 1本（6mg）';
+      else             form = '10mg × 1本（10mg）';
+      return { lines: [
+        { l: '目標用量', v: `${target} mg（0.4mg/kg）`, cls: 'ok' },
+        { l: '推奨製剤', v: form, cls: 'big' },
+        { l: '1日最大量', v: `${max_day} mg（1mg/kg/日）`, cls: 'capped' },
+        { l: '再投与', v: '8時間後・発作継続時のみ' },
+      ], note: '呼吸抑制に注意。フルマゼニルを準備' };
+    },
+    ageDose: [
+      { range: '7〜10kg未満',  dose: '4mg × 1/2本', max: '1mg/kg/日', matchAge: (am, w) => w && w >= 7 && w < 10 },
+      { range: '13〜18kg未満', dose: '6mg × 1本',   max: '1mg/kg/日', matchAge: (am, w) => w && w >= 13 && w < 18 },
+      { range: '20kg以上',     dose: '10mg × 1本',  max: '1mg/kg/日', matchAge: (am, w) => w && w >= 20 },
+    ],
+    warnings: ['呼吸抑制に注意', '1mg/kg/日を超えない', '再投与は8時間後のみ'],
+    checks: ['用量（0.4〜0.5mg/kg）を確認した', '1mg/kg/日以下であることを確認した', '呼吸モニターを準備した', 'フルマゼニルが手元にある']
+  },
+  // ---- 嘔吐 ----
+  {
+    id: 'd050', cat: '嘔吐', catColor: '#c78d00',
+    name: 'ナウゼリン坐剤', form: '10mg / 30mg', keyword: '嘔吐 ドンペリドン',
+    calc: (w, am) => {
+      if (!w) throw new Error('体重必要');
+      const dose_mg = Math.min(w * 1, 30);
+      let form;
+      if (w < 10)      form = '10mg × 1/2本（5mg）';
+      else if (w < 13) form = '10mg × 1本（10mg）';
+      else if (w < 18) form = '30mg × 1/2本（15mg）';
+      else             form = '30mg × 1本（30mg）';
+      return { lines: [
+        { l: '目標用量', v: `${dose_mg.toFixed(0)} mg（1mg/kg/回）`, cls: 'ok' },
+        { l: '推奨製剤', v: form, cls: 'big' },
+        { l: '最大量', v: '30mg/回' },
+      ], note: null };
+    },
+    ageDose: [
+      { range: '7〜10kg未満',  dose: '10mg × 1/2本', max: '30mg/回', matchAge: (am, w) => w && w < 10 },
+      { range: '13〜18kg未満', dose: '30mg × 1/2本', max: '30mg/回', matchAge: (am, w) => w && w >= 13 && w < 18 },
+    ],
+    warnings: [], checks: ['規格（10mg/30mg）を確認した', '用量（1mg/kg）を確認した']
+  },
+  // ---- 感染症 ----
+  {
+    id: 'd060', cat: '感染症', catColor: '#1a7fd4',
+    name: 'クラリスロマイシンDS', form: '細粒', keyword: '感染症 抗菌薬 マクロライド',
+    calc: (w, am) => {
+      if (!w) throw new Error('体重必要');
+      const d_min = Math.min(w * 10, 800);
+      const d_max = Math.min(w * 15, 800);
+      return { lines: [
+        { l: '1日量（成分）', v: `${d_min.toFixed(0)}〜${d_max.toFixed(0)} mg`, cls: 'ok' },
+        { l: '投与', v: '分2〜3' },
+        { l: '最大量', v: '800mg/日', cls: 'capped' },
+      ], note: '5〜14日間投与' };
+    },
+    ageDose: [{ range: '全年齢', dose: '10〜15mg/kg/日 分2〜3', max: '800mg/日', matchAge: () => true }],
+    warnings: ['QT延長に注意'], checks: ['用量（10〜15mg/kg）を確認した', 'アレルギー歴を確認した', '投与日数を設定した']
+  },
+  {
+    id: 'd061', cat: '感染症', catColor: '#1a7fd4',
+    name: 'セフゾン細粒小児用', form: '細粒', keyword: '感染症 抗菌薬 セフェム',
+    calc: (w, am) => {
+      if (!w) throw new Error('体重必要');
+      const d_min = Math.min(w * 9, 600);
+      const d_max = Math.min(w * 18, 600);
+      return { lines: [
+        { l: '1日量（成分）', v: `${d_min.toFixed(0)}〜${d_max.toFixed(0)} mg`, cls: 'ok' },
+        { l: '投与', v: '分2〜3' },
+        { l: '最大量', v: '600mg/日', cls: 'capped' },
+      ], note: null };
+    },
+    ageDose: [{ range: '全年齢', dose: '9〜18mg/kg/日 分2〜3', max: '600mg/日', matchAge: () => true }],
+    warnings: ['ペニシリンアレルギーに注意（交差あり）'],
+    checks: ['用量（9〜18mg/kg）を確認した', 'ペニシリンアレルギー歴を確認した']
+  },
+  {
+    id: 'd062', cat: '感染症', catColor: '#1a7fd4',
+    name: 'メイアクト細粒', form: '細粒', keyword: '感染症 抗菌薬 セフェム',
+    calc: (w, am) => {
+      if (!w) throw new Error('体重必要');
+      const dose = Math.min(w * 9, 300);
+      return { lines: [
+        { l: '1日量（成分）', v: `${dose.toFixed(0)} mg`, cls: 'ok' },
+        { l: '投与', v: '分3' },
+        { l: '最大量', v: '300mg/日', cls: 'capped' },
+      ], note: null };
+    },
+    ageDose: [{ range: '全年齢', dose: '9mg/kg/日 分3', max: '300mg/日', matchAge: () => true }],
+    warnings: [], checks: ['用量（9mg/kg）を確認した', 'アレルギー歴を確認した']
+  },
+  {
+    id: 'd063', cat: '感染症', catColor: '#1a7fd4',
+    name: 'ワイドシリン細粒', form: '細粒（アモキシシリン）', keyword: '感染症 抗菌薬 ペニシリン',
+    calc: (w, am) => {
+      if (!w) throw new Error('体重必要');
+      const d_min = Math.min(w * 20, 1500);
+      const d_max = Math.min(w * 40, 1500);
+      return { lines: [
+        { l: '1日量（成分）', v: `${d_min.toFixed(0)}〜${d_max.toFixed(0)} mg`, cls: 'ok' },
+        { l: '投与', v: '分2〜3' },
+        { l: '最大量', v: '1500mg/日', cls: 'capped' },
+      ], note: 'ペニシリンアレルギー禁忌。レボフロキサシンは小児禁忌' };
+    },
+    ageDose: [{ range: '全年齢', dose: '20〜40mg/kg/日 分2〜3', max: '1500mg/日', matchAge: () => true }],
+    warnings: ['ペニシリンアレルギー禁忌', 'レボフロキサシンは小児禁忌'],
+    checks: ['ペニシリンアレルギーがないことを確認した', '用量を確認した']
+  },
+  // ---- インフルエンザ ----
+  {
+    id: 'd070', cat: 'インフルエンザ', catColor: '#1e9e4a',
+    name: 'タミフルDS', form: 'ドライシロップ（3%）', keyword: 'インフル タミフル オセルタミビル',
+    calc: (w, am) => {
+      if (!w) throw new Error('体重必要');
+      let dose_day, note;
+      // 1歳未満は6mg/kg、1歳以上は4mg/kg、37.5kg以上は150mg固定
+      const isUnder1y = am !== null ? am < 12 : w < 8;
+      if (w >= 37.5)       { dose_day = 150; note = '37.5kg以上：固定量 150mg/日'; }
+      else if (isUnder1y)  { dose_day = Math.min(w * 6, 150); note = '1歳未満：6mg/kg/日'; }
+      else                 { dose_day = Math.min(w * 4, 150); note = '1歳以上：4mg/kg/日'; }
+      const g_day = dose_day / 30;
+      return { lines: [
+        { l: '1日量（成分）', v: `${dose_day.toFixed(0)} mg`, cls: dose_day >= 150 ? 'capped' : 'ok' },
+        { l: '1日量（DS3%）', v: `${g_day.toFixed(2)} g`, cls: 'big' },
+        { l: '1回量（DS）分2', v: `${(g_day/2).toFixed(2)} g` },
+        { l: '投与日数', v: '5日間（分2）' },
+        { l: '最大量', v: '150mg/日', cls: 'capped' },
+      ], note };
+    },
+    ageDose: [
+      { range: '1歳未満',    dose: '6mg/kg/日 分2 × 5日',  max: '-',       matchAge: (am) => am !== null && am < 12 },
+      { range: '1歳以上',    dose: '4mg/kg/日 分2 × 5日',  max: '150mg/日', matchAge: (am) => am === null || am >= 12 },
+      { range: '37.5kg以上', dose: '150mg/日 分2 × 5日',   max: '150mg/日', matchAge: (am, w) => w && w >= 37.5 },
+    ],
+    warnings: ['異常行動に注意（10代）'],
+    checks: ['年齢区分（1歳未満/以上）を確認した', '5日間投与を設定した', '最大量150mg/日を超えていない']
+  },
+  {
+    id: 'd071', cat: 'インフルエンザ', catColor: '#1e9e4a',
+    name: 'イナビル吸入', form: '20mg / 40mg', keyword: 'インフル イナビル ラニナミビル',
+    calc: (w, am) => {
+      if (am !== null && am < 60) {
+        return { lines: [{ l: '注意', v: '5歳未満は禁忌', cls: 'capped' }], note: null };
+      }
+      const isUnder10y = am !== null ? am < 120 : (w ? w < 35 : null);
+      if (isUnder10y === null) throw new Error('年齢または体重が必要');
+      return { lines: [
+        { l: '対象', v: isUnder10y ? '5歳〜10歳未満' : '10歳以上' },
+        { l: '投与量', v: isUnder10y ? '20mg（1本）1回' : '40mg（2本）1回', cls: 'big' },
+        { l: '投与方法', v: '1日1回、単回' },
+      ], note: '正しく吸入できるか確認' };
+    },
+    ageDose: [
+      { range: '5歳未満',    dose: '禁忌',             max: '-', matchAge: (am) => am !== null && am < 60 },
+      { range: '5〜10歳未満', dose: '20mg（1本）単回', max: '-', matchAge: (am) => am !== null && am >= 60 && am < 120 },
+      { range: '10歳以上',   dose: '40mg（2本）単回',  max: '-', matchAge: (am) => am === null || am >= 120 },
+    ],
+    warnings: ['5歳未満は使用不可', '吸入手技を確認'],
+    checks: ['5歳以上であることを確認した', '年齢区分（10歳）を確認した', '吸入手技を指導した']
+  },
+  // ---- 水痘 ----
+  {
+    id: 'd080', cat: '水痘', catColor: '#7c4dbb',
+    name: 'バラシクロビル顆粒', form: '顆粒', keyword: '水痘 バラシクロビル',
+    calc: (w, am) => {
+      if (!w) throw new Error('体重必要');
+      const dose = Math.min(w * 75, 3000);
+      return { lines: [
+        { l: '1日量（成分）', v: `${dose.toFixed(0)} mg`, cls: dose >= 3000 ? 'capped' : 'ok' },
+        { l: '投与', v: '分3（1日3回）× 7日間' },
+        { l: '最大量', v: '3000mg/日', cls: 'capped' },
+      ], note: dose >= 3000 ? '最大量に達しています' : null };
+    },
+    ageDose: [
+      { range: '全年齢（〜20kg）', dose: '75mg/kg/日 分3', max: '3000mg/日', matchAge: (am, w) => !w || w < 20 },
+      { range: '20kg以上',        dose: '3錠/日 分3',     max: '3000mg/日', matchAge: (am, w) => w && w >= 20 },
+      { range: '40kg以上',        dose: '6錠/日 分3',     max: '3000mg/日', matchAge: (am, w) => w && w >= 40 },
+    ],
+    warnings: ['腎機能に応じて減量'], checks: ['用量（75mg/kg）を確認した', '最大量3000mg/日を超えていない', '7日間投与を設定した']
+  },
+  // ---- 喘息 ----
+  {
+    id: 'd090', cat: '喘息', catColor: '#c94f8a',
+    name: 'テオフィリンDS', form: '細粒', keyword: '喘息 テオフィリン キサンチン',
+    calc: (w, am) => {
+      if (!w) throw new Error('体重必要');
+      const d_min = (w * 8).toFixed(0);
+      const d_max = (w * 16).toFixed(0);
+      return { lines: [
+        { l: '1日量（成分）', v: `${d_min}〜${d_max} mg`, cls: 'ok' },
+        { l: '投与', v: '分2（12時間ごと）' },
+        { l: '⚠ 発熱時', v: '投与禁止', cls: 'capped' },
+      ], note: '発熱時は血中濃度が上昇するため禁忌' };
+    },
+    ageDose: [{ range: '全年齢', dose: '8〜16mg/kg/日 分2', max: '-', matchAge: () => true }],
+    warnings: ['発熱時禁忌（血中濃度上昇）', '狭い治療域に注意'],
+    checks: ['発熱がないことを確認した', '用量（8〜16mg/kg）を確認した', '12時間ごとの投与を確認した']
+  },
+];
+// ===== CATEGORIES (managed dynamically by admin) =====
+const CAT_EMOJIS = {}; // 絵文字なし
+
+// ===== STATE =====
+let weight = null;       // kg（数値 or null）
+let ageMonths = null;    // 月齢（数値 or null）— 計算の基準
+let activeCat = 'すべて';
+let searchText = '';
+let confirmedIds = new Set();
+let currentDrug = null;
+let modalChecks = {};
+
+// ===== INIT =====
+function init() {
+  renderCats();
+  renderGrid();
+  document.getElementById('weightInput').addEventListener('input', onPatientChange);
+  document.getElementById('ageYearInput').addEventListener('input', onPatientChange);
+  document.getElementById('ageMonthInput').addEventListener('input', onPatientChange);
+  document.getElementById('searchInput').addEventListener('input', e => { searchText = e.target.value; renderGrid(); });
+  document.getElementById('overlay').addEventListener('click', e => { if(e.target === document.getElementById('overlay')) closeModal(); });
+  document.querySelectorAll('.age-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const w  = parseFloat(btn.dataset.w);
+      const yy = parseInt(btn.dataset.yy);
+      const ym = parseInt(btn.dataset.ym);
+      document.getElementById('weightInput').value   = w;
+      document.getElementById('ageYearInput').value  = yy;
+      document.getElementById('ageMonthInput').value = ym;
+      weight    = w;
+      ageMonths = yy * 12 + ym;
+      document.querySelectorAll('.age-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      updatePatientInfo();
+      renderGrid();
+    });
+  });
+}
+
+function onPatientChange() {
+  weight = parseFloat(document.getElementById('weightInput').value) || null;
+  const yy = parseInt(document.getElementById('ageYearInput').value);
+  const ym = parseInt(document.getElementById('ageMonthInput').value);
+  const hasY = !isNaN(yy);
+  const hasM = !isNaN(ym);
+  ageMonths = (hasY || hasM) ? ((hasY ? yy : 0) * 12 + (hasM ? ym : 0)) : null;
+
+  // クイックボタンのハイライト解除（手動入力時）
+  document.querySelectorAll('.age-btn').forEach(b => {
+    const bw  = parseFloat(b.dataset.w);
+    const bym = parseInt(b.dataset.yy) * 12 + parseInt(b.dataset.ym);
+    b.classList.toggle('active', bw === weight && bym === ageMonths);
+  });
+  updatePatientInfo();
+  renderGrid();
+}
+
+function updatePatientInfo() {
+  const bsaEl  = document.getElementById('bsaDisplay');
+  const ageEl  = document.getElementById('ageGuessDisplay');
+  const warnEl = document.getElementById('ageWarningBar');
+
+  // BSA（Mosteller式）
+  if (weight) {
+    const h = estimateHeight(weight);
+    const b = Math.sqrt(h * weight / 3600);
+    bsaEl.textContent = `BSA ${b.toFixed(2)}m²`;
+  } else {
+    bsaEl.textContent = '-';
+  }
+
+  // 年齢表示
+  if (ageMonths !== null) {
+    const yy = Math.floor(ageMonths / 12);
+    const mm = ageMonths % 12;
+    ageEl.textContent = yy > 0
+      ? (mm > 0 ? `${yy}歳${mm}ヶ月` : `${yy}歳`)
+      : `${mm}ヶ月`;
+  } else if (weight) {
+    ageEl.textContent = `推定${estimateAgeLabel(weight)}`;
+  } else {
+    ageEl.textContent = '-';
+  }
+
+  // 体重と年齢の不整合チェック
+  warnEl.style.display = 'none';
+  if (weight && ageMonths !== null) {
+    const est = estimateWeightFromAge(ageMonths);
+    const ratio = weight / est;
+    if (ratio < 0.6 || ratio > 1.7) {
+      warnEl.style.display = 'block';
+      warnEl.textContent = `⚠ 体重 ${weight}kg と年齢の組み合わせを確認してください（年齢相当の目安体重：約${est}kg）`;
+    }
+  }
+}
+
+// 月齢から目安体重を返す（チェック用）
+function estimateWeightFromAge(months) {
+  if (months <= 1)  return 3.5;
+  if (months <= 3)  return 5.5;
+  if (months <= 6)  return 7.5;
+  if (months <= 12) return 9.5;
+  const years = months / 12;
+  if (years <= 5)   return 10 + (years - 1) * 2;
+  if (years <= 10)  return 18 + (years - 5) * 3;
+  return 33 + (years - 10) * 4;
+}
+
+function estimateHeight(w) {
+  if (w < 5)  return 50 + w * 5;
+  if (w < 10) return 70 + w * 3;
+  if (w < 20) return 85 + (w - 10) * 4;
+  if (w < 40) return 115 + (w - 20) * 2;
+  return 155 + (w - 40);
+}
+
+function estimateAgeLabel(w) {
+  if (w < 4)  return '新生児';
+  if (w < 7)  return '〜6ヵ月';
+  if (w < 10) return '〜1歳';
+  if (w < 13) return '〜2歳';
+  if (w < 16) return '〜3歳';
+  if (w < 20) return '〜5歳';
+  if (w < 25) return '〜7歳';
+  if (w < 35) return '〜10歳';
+  if (w < 45) return '〜12歳';
+  return '〜15歳';
+}
+
+function renderCats() {
+  const el = document.getElementById('catScroll');
+  el.innerHTML = CATS.map(cat => `
+    <button class="cat-btn${cat === activeCat ? ' active' : ''}" 
+      style="${cat === activeCat ? `background:${getCatColor(cat)};border-color:${getCatColor(cat)}` : ''}"
+      onclick="selectCat('${cat}')">${cat}</button>
+  `).join('');
+}
+
+function getCatColor(cat) {
+  const drug = DRUGS.find(d => d.cat === cat);
+  return drug ? drug.catColor : '#79c0ff';
+}
+
+function selectCat(cat) {
+  activeCat = cat;
+  renderCats();
+  renderGrid();
+}
+
+function renderGrid() {
+  const grid = document.getElementById('drugGrid');
+  let filtered = DRUGS.filter(d => {
+    const catOk = activeCat === 'すべて' || d.cat === activeCat;
+    const q = searchText.toLowerCase();
+    const searchOk = !q || d.name.toLowerCase().includes(q) || (d.keyword||'').includes(q) || d.cat.includes(q);
+    return catOk && searchOk;
+  });
+
+  if (!filtered.length) {
+    grid.innerHTML = '<div class="no-result">該当する薬剤が見つかりません</div>';
+    return;
+  }
+
+  grid.innerHTML = filtered.map(d => {
+    const confirmed = confirmedIds.has(d.id);
+    let dosePreview = '<span class="no-weight">体重・年齢を入力してください</span>';
+    let doseClass = '';
+    if (weight || ageMonths !== null) {
+      try {
+        const r = d.calc(weight, ageMonths);
+        const bigLine = r.lines.find(l => l.cls === 'big') || r.lines[0];
+        dosePreview = bigLine.v;
+        doseClass = bigLine.cls === 'capped' ? 'warn' : 'ok';
+      } catch(e) {
+        dosePreview = '<span class="no-weight">体重も入力してください</span>';
+      }
+    }
+    const hasDanger = d.warnings && d.warnings.length > 0;
+    return `
+      <div class="drug-card${confirmed ? ' confirmed' : ''}" onclick="openModal('${d.id}')">
+        <div class="confirmed-stamp">✓ 確認済</div>
+        ${hasDanger ? '<span class="warn-badge">⚠️</span>' : ''}
+        <div style="display:flex;align-items:flex-start;gap:4px;margin-bottom:4px">
+          <span class="drug-cat-tag" style="background:${d.catColor}22;color:${d.catColor}">${d.cat}</span>
+        </div>
+        <div class="drug-name">${d.name}</div>
+        <div class="drug-form">${d.form}</div>
+        <div class="drug-dose-preview ${doseClass}">${dosePreview}</div>
+        <div style="height:3px;background:${d.catColor};opacity:0.4;border-radius:2px;margin-top:6px"></div>
+      </div>
+    `;
+  }).join('');
+}
+
+function openModal(id) {
+  currentDrug = DRUGS.find(d => d.id === id);
+  if (!currentDrug) return;
+  modalChecks = {};
+  currentDrug.checks.forEach((_, i) => modalChecks[i] = false);
+  renderModal();
+  document.getElementById('overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal() {
+  document.getElementById('overlay').classList.remove('open');
+  document.body.style.overflow = '';
+  currentDrug = null;
+}
+
+function renderModal() {
+  const d = currentDrug;
+  document.getElementById('modalTitle').textContent = d.name;
+  document.getElementById('modalSubtitle').textContent = `${d.cat} ／ ${d.form}`;
+
+  // 患者情報サマリ
+  const ptParts = [];
+  if (weight) ptParts.push(`体重 ${weight}kg`);
+  if (ageMonths !== null) {
+    const yy = Math.floor(ageMonths / 12), mm = ageMonths % 12;
+    ptParts.push(yy > 0 ? (mm > 0 ? `${yy}歳${mm}ヶ月` : `${yy}歳`) : `${mm}ヶ月`);
+  }
+
+  let html = '';
+
+  // Dose result
+  if (weight || ageMonths !== null) {
+    try {
+      const result = d.calc(weight, ageMonths);
+      const isWarn = result.lines.some(l => l.cls === 'capped');
+      html += `<div class="dose-result-box ${isWarn ? 'warn' : 'highlight'}">`;
+      html += `<div style="font-size:11px;font-weight:700;color:var(--text-muted);margin-bottom:8px">
+        ${ptParts.join('・')} の計算結果
+      </div>`;
+      result.lines.forEach(row => {
+        html += `<div class="dose-row">
+          <span class="dose-row-label">${row.l}</span>
+          <span class="dose-row-value ${row.cls||''}">${row.v}</span>
+        </div>`;
+      });
+      html += `</div>`;
+      if (result.note) {
+        html += `<div class="alert-box ${isWarn ? 'caution' : 'info'}">ℹ️ ${result.note}</div>`;
+      }
+    } catch(e) {
+      html += `<div class="alert-box caution">⚠️ 計算に必要な情報が不足しています。体重・年齢を入力してください。</div>`;
+    }
+  } else {
+    html += `<div class="alert-box info">⚖️ 上部で体重・年齢を入力すると、計算結果が表示されます</div>`;
+  }
+
+  // Warnings
+  if (d.warnings && d.warnings.length > 0) {
+    html += `<div style="margin-top:12px">`;
+    d.warnings.forEach(w => {
+      html += `<div class="alert-box danger">⛔ ${w}</div>`;
+    });
+    html += `</div>`;
+  }
+
+  // Age-based doses
+  html += `<div class="info-section">
+    <div class="info-title">年齢・体重別 用法用量</div>
+    <table class="age-table">
+      <tr><th>対象</th><th>用量</th><th>最大量</th></tr>`;
+  d.ageDose.forEach(row => {
+    // 現在の患者がこの行に該当するかハイライト
+    const isMatch = ageMonths !== null && row.matchAge && row.matchAge(ageMonths, weight);
+    html += `<tr${isMatch ? ' style="background:rgba(26,127,212,.08);font-weight:700;"' : ''}>
+      <td>${row.range}</td><td>${row.dose}</td><td>${row.max}</td>
+    </tr>`;
+  });
+  html += `</table></div>`;
+
+  // Checklist
+  html += `<div class="confirm-section">
+    <div class="confirm-title">✅ 確認チェックリスト
+      <span style="font-size:11px;font-weight:400;color:var(--text-muted)">（医師・薬剤師 共同確認）</span>
+    </div>`;
+  d.checks.forEach((item, i) => {
+    html += `<div class="check-item" onclick="toggleCheck(${i})">
+      <div class="check-box${modalChecks[i] ? ' checked' : ''}" id="check_${i}">${modalChecks[i] ? '✓' : ''}</div>
+      <span class="check-label">${item}</span>
+    </div>`;
+  });
+  html += `</div>`;
+
+  document.getElementById('modalBody').innerHTML = html;
+  updateConfirmBtn();
+}
+
+function toggleCheck(i) {
+  modalChecks[i] = !modalChecks[i];
+  const box = document.getElementById(`check_${i}`);
+  if (box) {
+    box.classList.toggle('checked', modalChecks[i]);
+    box.textContent = modalChecks[i] ? '✓' : '';
+  }
+  updateConfirmBtn();
+}
+
+function updateConfirmBtn() {
+  const allChecked = Object.values(modalChecks).every(Boolean);
+  const btn = document.getElementById('confirmBtn');
+  if (allChecked) {
+    btn.disabled = false;
+    btn.style.background = '';
+  } else {
+    btn.disabled = true;
+  }
+}
+
+function confirmDrug() {
+  if (!currentDrug) return;
+  confirmedIds.add(currentDrug.id);
+  document.getElementById('confirmCount').textContent = confirmedIds.size;
+  closeModal();
+  renderGrid();
+}
+
+// ===== ADMIN =====
+const ADMIN_PW_KEY  = 'pediatric_admin_pw';
+const ADMIN_DATA_KEY = 'pediatric_drugs_v1';
+const DEFAULT_PW = 'admin1234';  // ← 初期パスワード（管理画面から変更可）
+
+// 起動時にlocalStorageの薬剤データを読み込んでDRUGSに反映
+function loadDrugsFromStorage() {
+  try {
+    const raw = localStorage.getItem(ADMIN_DATA_KEY);
+    if (!raw) return;
+    const saved = JSON.parse(raw);
+    // localStorageには「簡易データ」（calc不要の静的フィールド）のみ保存
+    // calcが必要な薬剤はDRUGSのcalcを流用し、追加薬剤はシンプル表示
+    saved.forEach(s => {
+      const existing = DRUGS.find(d => d.id === s.id);
+      if (existing) {
+        // 既存薬剤の編集可能フィールドを上書き
+        existing.name     = s.name;
+        existing.cat      = s.cat;
+        existing.form     = s.form     || existing.form;
+        existing.catColor = s.catColor || existing.catColor;
+        existing.keyword  = s.keyword  || existing.keyword;
+        existing.warnings = s.warnings || existing.warnings;
+        existing.checks   = s.checks   || existing.checks;
+        existing.ageDose  = s.ageDose  ? parseAgeDoseText(s.ageDoseRaw||'') || existing.ageDose : existing.ageDose;
+        existing.note     = s.note;
+        if (s.ageDoseRaw) existing.ageDose = parseAgeDoseText(s.ageDoseRaw);
+        if (s._deleted) { const idx = DRUGS.indexOf(existing); if(idx>-1) DRUGS.splice(idx,1); }
+      } else if (!s._deleted) {
+        // 新規追加薬剤
+        DRUGS.push({
+          id: s.id, cat: s.cat, catColor: s.catColor||'#888',
+          name: s.name, form: s.form||'', keyword: s.keyword||'',
+          ageDose: parseAgeDoseText(s.ageDoseRaw||''),
+          warnings: s.warnings||[], checks: s.checks||[],
+          _note: s.note||'',
+          calc: (w, am) => {
+            const note = s.note || '';
+            return { lines: [{ l: '用量メモ', v: note || '添付文書を確認', cls: 'ok' }], note: null };
+          }
+        });
+      }
+    });
+  } catch(e) { console.warn('loadDrugs error', e); }
+}
+
+function saveDrugsToStorage() {
+  const data = DRUGS.map(d => ({
+    id: d.id, name: d.name, cat: d.cat, form: d.form,
+    catColor: d.catColor, keyword: d.keyword,
+    ageDoseRaw: formatAgeDoseToText(d.ageDose),
+    warnings: d.warnings, checks: d.checks, note: d._note||''
+  }));
+  localStorage.setItem(ADMIN_DATA_KEY, JSON.stringify(data));
+}
+
+function parseAgeDoseText(text) {
+  if (!text || !text.trim()) return [];
+  return text.trim().split('\n').map(line => {
+    const parts = line.split('|').map(s => s.trim());
+    return { range: parts[0]||'', dose: parts[1]||'', max: parts[2]||'-', matchAge: () => false };
+  }).filter(r => r.range);
+}
+
+function formatAgeDoseToText(ageDose) {
+  if (!ageDose || !ageDose.length) return '';
+  return ageDose.map(r => `${r.range} | ${r.dose} | ${r.max}`).join('\n');
+}
+
+function hashPw(pw) {
+  // シンプルなハッシュ（本番ではbcrypt等を推奨だが、ブラウザ単体環境のため）
+  let h = 0;
+  for (let i = 0; i < pw.length; i++) h = ((h << 5) - h) + pw.charCodeAt(i) | 0;
+  return 'h_' + Math.abs(h).toString(36) + '_' + pw.length;
+}
+
+function getStoredPwHash() {
+  return localStorage.getItem(ADMIN_PW_KEY) || hashPw(DEFAULT_PW);
+}
+
+let adminAuthed = false;
+
+function openAdminGate() {
+  document.getElementById('admOverlay').classList.add('open');
+  document.getElementById('admAuth').style.display = 'block';
+  document.getElementById('admMain').style.display  = 'none';
+  document.getElementById('admPwInput').value = '';
+  document.getElementById('admPwErr').textContent = '';
+  if (adminAuthed) showAdminMain();
+  else setTimeout(() => document.getElementById('admPwInput').focus(), 100);
+}
+
+function closeAdmin() {
+  document.getElementById('admOverlay').classList.remove('open');
+}
+
+function checkAdminPw() {
+  const val = document.getElementById('admPwInput').value;
+  if (hashPw(val) === getStoredPwHash()) {
+    adminAuthed = true;
+    showAdminMain();
+  } else {
+    document.getElementById('admPwErr').textContent = 'パスワードが正しくありません';
+    document.getElementById('admPwInput').value = '';
+    document.getElementById('admPwInput').focus();
+  }
+}
+
+function showAdminMain() {
+  document.getElementById('admAuth').style.display = 'none';
+  document.getElementById('admMain').style.display  = 'block';
+  switchAdmTab('list', document.querySelector('.adm-tab'));
+  renderAdmDrugList();
+}
+
+function switchAdmTab(name, btn) {
+  document.querySelectorAll('.adm-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.adm-panel').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('admPanel' + name.charAt(0).toUpperCase() + name.slice(1)).classList.add('active');
+}
+
+function renderAdmDrugList() {
+  const list = document.getElementById('admDrugList');
+  if (!DRUGS.length) { list.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:20px;font-size:13px">薬剤がありません</div>'; return; }
+  list.innerHTML = DRUGS.map(d => `
+    <div class="adm-drug-row">
+      <div style="width:8px;height:8px;border-radius:50%;background:${d.catColor};flex-shrink:0"></div>
+      <div class="adm-drug-name">${d.name}</div>
+      <div class="adm-drug-cat">${d.cat}</div>
+      <button class="btn-adm-edit" onclick="openDrugForm('${d.id}')">編集</button>
+    </div>
+  `).join('');
+  // datalist for category autocomplete
+  const cats = [...new Set(DRUGS.map(d => d.cat))];
+  document.getElementById('fCatList').innerHTML = cats.map(c => `<option value="${c}">`).join('');
+}
+
+let editingDrugId = null;
+
+function openDrugForm(id) {
+  editingDrugId = id;
+  const form = document.getElementById('admFormOverlay');
+  const delBtn = document.getElementById('admDelBtn');
+  if (id) {
+    const d = DRUGS.find(x => x.id === id);
+    if (!d) return;
+    document.getElementById('admFormTitle').textContent = '薬剤を編集';
+    document.getElementById('fDrugId').value   = d.id;
+    document.getElementById('fName').value     = d.name;
+    document.getElementById('fCat').value      = d.cat;
+    document.getElementById('fForm').value     = d.form || '';
+    document.getElementById('fColor').value    = d.catColor || '#1a7fd4';
+    document.getElementById('fKeyword').value  = d.keyword || '';
+    document.getElementById('fAgeDose').value  = formatAgeDoseToText(d.ageDose);
+    document.getElementById('fWarnings').value = (d.warnings||[]).join('\n');
+    document.getElementById('fChecks').value   = (d.checks||[]).join('\n');
+    document.getElementById('fNote').value     = d._note || '';
+    delBtn.style.display = 'block';
+  } else {
+    document.getElementById('admFormTitle').textContent = '薬剤を追加';
+    ['fDrugId','fName','fCat','fForm','fKeyword','fAgeDose','fWarnings','fChecks','fNote'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('fColor').value = '#1a7fd4';
+    delBtn.style.display = 'none';
+  }
+  form.classList.add('open');
+}
+
+function closeDrugForm() {
+  document.getElementById('admFormOverlay').classList.remove('open');
+}
+
+function saveDrug() {
+  const name = document.getElementById('fName').value.trim();
+  const cat  = document.getElementById('fCat').value.trim();
+  if (!name || !cat) { alert('薬剤名とカテゴリは必須です'); return; }
+
+  const ageDoseRaw = document.getElementById('fAgeDose').value;
+  const warnings   = document.getElementById('fWarnings').value.split('\n').map(s=>s.trim()).filter(Boolean);
+  const checks     = document.getElementById('fChecks').value.split('\n').map(s=>s.trim()).filter(Boolean);
+  const note       = document.getElementById('fNote').value.trim();
+  const color      = document.getElementById('fColor').value;
+  const form       = document.getElementById('fForm').value.trim();
+  const keyword    = document.getElementById('fKeyword').value.trim();
+
+  if (editingDrugId) {
+    const d = DRUGS.find(x => x.id === editingDrugId);
+    if (d) {
+      d.name = name; d.cat = cat; d.form = form;
+      d.catColor = color; d.keyword = keyword;
+      d.ageDose  = parseAgeDoseText(ageDoseRaw);
+      d.warnings = warnings; d.checks = checks; d._note = note;
+    }
+  } else {
+    const newId = 'u_' + Date.now();
+    const captured = note;
+    DRUGS.push({
+      id: newId, cat, catColor: color, name, form, keyword,
+      ageDose: parseAgeDoseText(ageDoseRaw),
+      warnings, checks, _note: note,
+      calc: (w, am) => ({ lines: [{ l: '用量メモ', v: captured||'添付文書を確認', cls:'ok'}], note:null })
+    });
+  }
+
+  saveDrugsToStorage();
+  // カテゴリリストを再構築
+  CATS.length = 0;
+  CATS.push('すべて', ...new Set(DRUGS.map(d => d.cat)));
+  renderCats();
+  renderGrid();
+  renderAdmDrugList();
+  closeDrugForm();
+}
+
+function deleteDrug() {
+  if (!editingDrugId) return;
+  if (!confirm('この薬剤を削除しますか？')) return;
+  const idx = DRUGS.findIndex(d => d.id === editingDrugId);
+  if (idx > -1) DRUGS.splice(idx, 1);
+  saveDrugsToStorage();
+  CATS.length = 0;
+  CATS.push('すべて', ...new Set(DRUGS.map(d => d.cat)));
+  if (activeCat !== 'すべて' && !CATS.includes(activeCat)) activeCat = 'すべて';
+  renderCats();
+  renderGrid();
+  renderAdmDrugList();
+  closeDrugForm();
+}
+
+function changePassword() {
+  const oldVal  = document.getElementById('admPwOld').value;
+  const newVal  = document.getElementById('admPwNew').value;
+  const newVal2 = document.getElementById('admPwNew2').value;
+  const errEl   = document.getElementById('admPwChangeErr');
+  errEl.textContent = '';
+  if (hashPw(oldVal) !== getStoredPwHash()) { errEl.textContent = '現在のパスワードが正しくありません'; return; }
+  if (newVal.length < 6)   { errEl.textContent = '新しいパスワードは6文字以上にしてください'; return; }
+  if (newVal !== newVal2)  { errEl.textContent = '新しいパスワードが一致しません'; return; }
+  localStorage.setItem(ADMIN_PW_KEY, hashPw(newVal));
+  ['admPwOld','admPwNew','admPwNew2'].forEach(id => document.getElementById(id).value = '');
+  errEl.style.color = 'var(--green)';
+  errEl.textContent = 'パスワードを変更しました';
+  setTimeout(() => { errEl.textContent=''; errEl.style.color='var(--red)'; }, 3000);
+}
+
+// close on overlay click
+document.getElementById('admOverlay').addEventListener('click', e => { if(e.target===document.getElementById('admOverlay')) closeAdmin(); });
+document.getElementById('admFormOverlay').addEventListener('click', e => { if(e.target===document.getElementById('admFormOverlay')) closeDrugForm(); });
+
+// CATS を変更可能な配列にする
+const CATS = ['すべて', ...new Set(DRUGS.map(d => d.cat))];
+
+// データ読み込み
+loadDrugsFromStorage();
+// 読み込み後にCATSを再構築
+CATS.length = 0;
+CATS.push('すべて', ...new Set(DRUGS.map(d => d.cat)));
+
+init();
+</script>
+</body>
+</html>
